@@ -15,6 +15,15 @@ class BhvStarterPass(IBehavior):
         pass
 
     def execute(self, agent: "SamplePlayerAgent") -> bool:
+        '''
+        Execute the passing behavior which is finding the best pass target and executing the pass action.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+
+        '''
         # Log the execution of the behavior
         agent.logger.debug("BhvStarterPass.execute")
         
@@ -86,7 +95,7 @@ class BhvStarterPass(IBehavior):
         ball_pos = Vector2D(wm.ball.position.x, wm.ball.position.y)
         self_pos = Vector2D(wm.self.position.x, wm.self.position.y)
         
-        # Iterate over teammates to find valid pass targets
+        # Iterate over teammates position and teammates around position to find valid pass targets
         for teammate in wm.teammates:
             if (
                 teammate == None
@@ -94,34 +103,22 @@ class BhvStarterPass(IBehavior):
                 or teammate.uniform_number < 0
             ):
                 continue
-            
+            #teammate positon to pass
             tm_pos = Vector2D(teammate.position.x, teammate.position.y)
             
-            # Check if the teammate is too far from the ball
-            if tm_pos.dist(ball_pos) > 30.0:
-                continue
-            
-            # Check if the teammate is too close to the agent
-            if self_pos.dist(tm_pos) < 2.0:
-                continue
-            
-            # Check if the teammate is offside
-            if tm_pos.x() > wm.offside_line_x - 0.5:
-                continue
-            
-            # Define a sector to check for opponents
-            check_root = Sector2D(
-                ball_pos,
-                1.0,
-                tm_pos.dist(ball_pos) + 3.0,
-                (tm_pos - ball_pos).th().degree() - 15.0,
-                (tm_pos - ball_pos).th().degree() + 15.0,
-            )
-            
-            # Check if there are no opponents in the sector
-            if not Tools.exist_opponent_in(agent, check_root):
+            if self.target_point_validation(agent, tm_pos):
                 targets.append(tm_pos)
-        
+
+            
+            # points around the teammate
+            raduis = 2.0
+            for angle in range(0, 360, 30):
+                pass_poss = Vector2D(teammate.position.x, teammate.position.y) + Vector2D.polar2vector(raduis, angle)
+                
+                if self.target_point_validation(agent, pass_poss):
+                    targets.append(pass_poss)
+    
+    
         # Return the list of valid pass targets
         return targets
 
@@ -129,7 +126,8 @@ class BhvStarterPass(IBehavior):
         """
         Determine the best candidate target from a list of targets for the given agent.
         Args:
-            agent (SamplePlayerAgent): The agent for which the best candidate target is being determined.
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
             targets (list[Vector2D]): A list of potential target positions represented as Vector2D objects.
         Returns:
             Union[Vector2D, None]: The best candidate target based on the highest x-coordinate value, 
@@ -146,3 +144,47 @@ class BhvStarterPass(IBehavior):
         
         # Return the best pass target
         return best_target
+    
+    def target_point_validation(self, agent: "SamplePlayerAgent", target : Vector2D) -> bool:
+        """
+        Check if the pass point is valid for the agent to pass the ball to the target.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+            target (Vector2D): The target position to pass the ball to.
+        Returns:
+            bool: True if the pass point is valid, False otherwise.
+        """
+        wm = agent.wm
+        
+        # Get the positions of the ball and the agent
+        ball_pos = Vector2D(wm.ball.position.x, wm.ball.position.y)
+        self_pos = Vector2D(wm.self.position.x, wm.self.position.y)
+
+        # Check if the teammate is too far from the ball
+        if target.dist(ball_pos) > 30.0:
+            return False
+        
+        # Check if the teammate is too close to the agent
+        if self_pos.dist(target) < 2.0:
+            return False
+        
+        # Check if the teammate is offside
+        if target.x() > wm.offside_line_x - 0.5:
+            return False
+        
+        # Define a sector to check for opponents
+        check_root = Sector2D(
+            ball_pos,
+            1.0,
+            target.dist(ball_pos) + 3.0,
+            (target - ball_pos).th().degree() - 15.0,
+            (target - ball_pos).th().degree() + 15.0,
+        )
+        
+        # Check if there are no opponents in the sector
+        if Tools.exist_opponent_in(agent, check_root):
+            return False
+        
+
+        return True

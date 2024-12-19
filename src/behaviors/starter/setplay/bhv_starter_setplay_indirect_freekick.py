@@ -23,6 +23,13 @@ class BhvStarterSetPlayIndirectFreeKick:
         
 
     def execute(self, agent: "SamplePlayerAgent") -> bool:
+        '''
+        Executes the indirect free kick behavior for the agent if the free kick is on the agent's side.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+        '''
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
         setplay = BhvStarterSetPlay()
         wm = agent.wm
@@ -38,6 +45,14 @@ class BhvStarterSetPlayIndirectFreeKick:
             return self.do_defense_move(agent)
 
     def do_kicker(self, agent: "SamplePlayerAgent"):
+        '''
+        Executes the kick behavior for the agent in an indirect free kick situation.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+        '''
         from src.behaviors.starter.bhv_starter_go_to_placed_ball import BhvStarterGoToPlacedBall
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
         go_to_placed_ball = BhvStarterGoToPlacedBall(0.0)
@@ -113,6 +128,13 @@ class BhvStarterSetPlayIndirectFreeKick:
         #agent.add_say_message(BallMessage(agent.effector().queued_next_ball_pos(), agent.effector().queued_next_ball_vel())) #TODO
 
     def do_kick_to_shooter(self, agent: "SamplePlayerAgent"):
+        '''
+        Executes Kick action to the teammate nearest to the opponent goal.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+        '''
         wm = agent.wm
         self_position = Vector2D(wm.self.position.x, wm.self.position.y)
         goal = Vector2D(agent.server_params.pitch_half_length, self_position.y() * 0.8)
@@ -120,6 +142,7 @@ class BhvStarterSetPlayIndirectFreeKick:
         min_dist = 100000.0
         receiver = None
 
+        # find the nearest teammate to the opponent goal
         for t in Tools.get_teammates_from_ball(agent):
             if t.dist_from_ball < 1.5:
                 continue
@@ -153,6 +176,7 @@ class BhvStarterSetPlayIndirectFreeKick:
         ball_position = Vector2D(wm.ball.position.x, wm.ball.position.y)
         target_dist = ball_position.dist(target_point)
 
+        # Calculate the number of steps required for the ball to reach the target
         ball_reach_step = math.ceil(calc_length_geom_series(max_ball_speed, target_dist, agent.server_params.ball_decay))
         ball_speed = calc_first_term_geom_series(target_dist, agent.server_params.ball_decay, ball_reach_step)
 
@@ -162,38 +186,60 @@ class BhvStarterSetPlayIndirectFreeKick:
         return True
 
     def get_avoid_circle_point(self, agent: IAgent, point: Vector2D):
+        '''
+        Calculate a point to avoid a circle area around a specific location (goal area or center circle).
+        Args:
+            agent (IAgent): The agent that will execute the behavior.
+            point (Vector2D): The target point to potentially adjust.
+        Returns:
+            Vector2D: The adjusted point if restricted is necessary, otherwise the original point.
+        '''
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
         setplay = BhvStarterSetPlay()
-        SP = agent.server_params
-        wm = agent.wm
+        SP = agent.server_params  # Access the server parameters
+        wm = agent.wm  
         
+        # Determine the radius of the restricted circle based on game mode
         circle_r = SP.goal_area_length + 0.5 if wm.game_mode_type == GameModeType.BackPass_ else SP.center_circle_r + 0.5
-        circle_r2 = circle_r ** 2
+        circle_r2 = circle_r ** 2  
 
-        ball_position = Vector2D(wm.ball.position.x, wm.ball.position.y)
+        ball_position = Vector2D(wm.ball.position.x, wm.ball.position.y) 
+
+        # Adjust the point if it is near the goal area
         if point.x() < -SP.pitch_half_length + 3.0 and abs(point.y()) < SP.goal_width / 2:
             while point.x() < wm.ball.position.x and point.x() > -SP.pitch_half_length and ball_position.dist2(point) < circle_r2:
                 point.x = (point.x() - SP.pitch_half_length) * 0.5 - 0.01
 
+        # Check if the agent is inside the goal area and adjust the point if necessary
         if point.x() < -SP.pitch_half_length + 0.5 and abs(point.y()) < SP.goal_width / 2 + 0.5 and wm.self.position.x < -SP.pitch_half_length and abs(wm.self.position.y) < SP.goal_width / 2:
             return point
 
+        # Adjust the point to avoid the circle area around the ball
         if ball_position.dist2(point) < circle_r2:
             rel = point - ball_position
             rel.set_length(circle_r)
             point = ball_position + rel
 
-        
+        # Use the set play behavior to get the final adjusted point
         return setplay.get_avoid_circle_point(wm, point)
 
+
     def do_offense_move(self, agent: "SamplePlayerAgent"):
+        ''' 
+        Execute the offensive move for the agent in an indirect free kick situation. 
+        Args: 
+            agent (SamplePlayerAgent): The agent that will execute the behavior. 
+        Returns: 
+            bool: True if the action was added to the agent's action list, False otherwise. 
+        '''
         wm = agent.wm
         target_point = Tools.convert_vector2d_to_rpc_vector2d(agent.strategy.get_position(wm.self.uniform_number, agent))
         target_point.x = min(wm.offside_line_x - 1.0, target_point.x)
         target_point_vector2d = Vector2D(target_point.x, target_point.y)
 
         nearest_dist = 1000.0
-        
+       
+        # Find the nearest teammate to the target point
         teammate = Tools.get_teammate_nearest_to(agent, Vector2D(target_point.x, target_point.y))
         teammate_pos = Vector2D(teammate.position.x, teammate.position.y)
         if nearest_dist < 2.5:
@@ -222,6 +268,13 @@ class BhvStarterSetPlayIndirectFreeKick:
         return True
 
     def do_defense_move(self, agent: "SamplePlayerAgent"):
+        ''' 
+        Execute the defensive move for the agent in an indirect free kick situation. 
+        Args: 
+            agent (SamplePlayerAgent): The agent that will execute the behavior. 
+        Returns: 
+            bool: True if the action was added to the agent's action list, False otherwise. 
+        '''
         SP = agent.server_params
         wm = agent.wm
         ball_position = Vector2D(wm.ball.position.x, wm.ball.position.y)
@@ -236,7 +289,7 @@ class BhvStarterSetPlayIndirectFreeKick:
         dist_thr = wm.ball.dist_from_self * 0.07
         if dist_thr < 0.5:
             dist_thr = 0.5
-
+        # Adjust the point if necessary based on distance and inertia
         if adjusted_point != target_point and ball_position.dist(target_point) > 10.0 and Tools.inertia_final_point(agent.player_types[agent.wm.self.id], self_position, self_velocity).dist(adjusted_point) < dist_thr:
             adjusted_point = target_point
 
@@ -250,10 +303,11 @@ class BhvStarterSetPlayIndirectFreeKick:
         nearest_post = goal_post_l if dist_post_l < dist_post_r else goal_post_r
         dist_post = min(dist_post_l, dist_post_r)
 
+        # Check if distance to the nearest post is within collision range
         if dist_post < collision_dist + agent.player_types[agent.wm.self.id].real_speed_max  + 0.5:
             post_circle = Circle2D(nearest_post, collision_dist)
             move_line = Segment2D(self_position, adjusted_point)
-
+            # Adjust the point if there is an intersection with the goal post
             if post_circle.intersection(move_line, None, None) > 0:
                 post_angle = (nearest_post - self_position).th()
                 if nearest_post.y() < self_position.y():
@@ -264,6 +318,7 @@ class BhvStarterSetPlayIndirectFreeKick:
                     adjusted_point += Vector2D.from_polar(collision_dist + 0.1, post_angle + 90.0)
 
                 dist_thr = 0.05
+                
         agent.add_action(PlayerAction(body_go_to_point=Body_GoToPoint(target_point=Tools.convert_vector2d_to_rpc_vector2d(adjusted_point), distance_threshold=dist_thr, max_dash_power=dash_power)))
         agent.add_action(PlayerAction(body_turn_to_ball=Body_TurnToBall(cycle=1)))
 

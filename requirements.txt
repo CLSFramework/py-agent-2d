@@ -3,3 +3,4 @@ grpcio-tools==1.65.4
 scipy==1.14.1
 pyrusgeom==0.1.2
 Nuitka==2.5
+psutil==5.8.0

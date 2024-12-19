@@ -16,6 +16,13 @@ class BhvStarterTackle(IBehavior):
         self.body_thr = body_thr
 
     def execute(self, agent: "SamplePlayerAgent"):
+        '''
+            Executes the tackle behavior for the agent base on the card type and the tackle probability.
+            Args:
+                agent (SamplePlayerAgent): The agent that will execute the behavior.
+            Returns:
+        '''
+
         agent.logger.debug("BhvStarterTackle.execute")
         wm = agent.wm
         use_foul = False

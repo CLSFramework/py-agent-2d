@@ -14,6 +14,10 @@ class BhvStarterSetPlayKickOff:
     def execute(self, agent: "SamplePlayerAgent"):
         """
         Execute the kickoff behavior.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list, False otherwise.
         """
         agent.logger.debug("BhvStarterSetPlayKickOff.execute")
         wm = agent.wm
@@ -28,6 +32,11 @@ class BhvStarterSetPlayKickOff:
     def do_kick(self, agent: "SamplePlayerAgent"):
         """
         Perform the kick action.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list, False otherwise.
         """
         from src.behaviors.starter.bhv_starter_go_to_placed_ball import (
             BhvStarterGoToPlacedBall,
@@ -77,7 +86,12 @@ class BhvStarterSetPlayKickOff:
 
     def do_move(self, agent: "SamplePlayerAgent"):
         """
-        Move to the appropriate position.
+        Perform the move action in the kickoff gamemode.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list, False otherwise
         """
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
 

@@ -25,6 +25,13 @@ class BhvStarterSetPlayKickIn:
         pass
 
     def execute(self, agent: "SamplePlayerAgent"):
+        """
+        Execute the agent behavior for the kickin set play.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list, False otherwise.
+        """
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
 
         setplay = BhvStarterSetPlay()
@@ -35,6 +42,13 @@ class BhvStarterSetPlayKickIn:
             return self.do_move(agent)
 
     def do_kick(self, agent: "SamplePlayerAgent"):
+        """
+        Execute the kick action for the kicker agent in the kickin set play.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list, False otherwise.
+        """
         from src.behaviors.starter.bhv_starter_go_to_placed_ball import (
             BhvStarterGoToPlacedBall,
         )
@@ -144,6 +158,13 @@ class BhvStarterSetPlayKickIn:
         return True
 
     def do_move(self, agent: "SamplePlayerAgent"):
+        """
+        Execute the move action for the non-kicker agent in the kickin set play.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list, False otherwise.
+        """
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
 
         setplay = BhvStarterSetPlay()
@@ -152,6 +173,7 @@ class BhvStarterSetPlayKickIn:
         target_point = agent.strategy.get_position(wm.self.uniform_number, agent)
         avoid_opponent = False
 
+        # Check if the agent has sufficient stamina and the nearest opponent is close to the target point then move away from the opponent
         if wm.self.stamina > agent.server_params.stamina_max * 0.9:
             nearest_opp = Tools.get_opponent_nearest_to_self(agent)
             nearest_opp_pos = Vector2D(nearest_opp.position.x, nearest_opp.position.y)
@@ -181,6 +203,7 @@ class BhvStarterSetPlayKickIn:
                     )
                 )
                 avoid_opponent = True
+        
         dash_power = setplay.get_set_play_dash_power(agent)
         dist_thr = wm.ball.dist_from_self * 0.07
         dist_thr = max(dist_thr, 1.0)
@@ -199,6 +222,7 @@ class BhvStarterSetPlayKickIn:
                 )
             )
         )
+
         # Already there
         if kicker_ball_dist > 1.0:
             agent.add_action(PlayerAction(turn=Turn(relative_direction=120)))
@@ -212,7 +236,8 @@ class BhvStarterSetPlayKickIn:
         wait_dist_buf = (
             10.0 if avoid_opponent else ball_position.dist(target_point) * 0.2 + 6.0
         )
-
+        
+        # Check if agent needs to wait before taking action
         if (
             my_inertia.dist(target_point) > wait_dist_buf
             or wm.self.stamina < agent.server_params.stamina_max * 0.7

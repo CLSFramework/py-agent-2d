@@ -16,14 +16,31 @@ class BhvStarterSetPlayFreeKick:
         pass
     
     def execute(self, agent: "SamplePlayerAgent"):
+        '''
+        Executes the free kick behavior for the agent if the free kick is on the agent's side.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+        '''
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
         selfplay = BhvStarterSetPlay()
         if selfplay.is_kicker(agent):
+            #Kicker action
             return self.doKick(agent)
         else:
+            #Non-kicker action
             return self.do_move(agent)
 
     def doKick(self, agent: "SamplePlayerAgent"):
+        '''
+        Executes the kick behavior for the agent in a free kick situation.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+        '''
         from src.behaviors.starter.bhv_starter_go_to_placed_ball import BhvStarterGoToPlacedBall
         from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
         go_to_placed_ball = BhvStarterGoToPlacedBall(0.0)
@@ -75,11 +92,21 @@ class BhvStarterSetPlayFreeKick:
         return True
 
     def do_move(self, agent: "SamplePlayerAgent"):
+        '''
+        Executes the move behavior for the agent in a free kick situation.
+        Args:
+            agent (SamplePlayerAgent): The agent that will execute the
+                behavior.
+        Returns:
+            bool: True if the action was added to the agent's action list,False otherwise.
+        '''
         wm = agent.wm
         target_point_rpc = Tools.convert_vector2d_to_rpc_vector2d(agent.strategy.get_position(wm.self.uniform_number, agent))
         target_point = Tools.convert_rpc_vector2d_to_vector2d(target_point_rpc)
         ball_positions = Tools.convert_rpc_vector2d_to_vector2d(wm.ball.position)
         self_positions = Tools.convert_rpc_vector2d_to_vector2d(wm.self.position)
+
+        #Try to find the base position base on the nearest opponent's position
         if wm.set_play_count > 0 and wm.self.stamina > agent.server_params.stamina_max * 0.9:
             nearest_opp = Tools.get_opponents_from_self(agent)[0]
 
@@ -99,14 +126,14 @@ class BhvStarterSetPlayFreeKick:
                 target_point.set_y(min(max(-agent.server_params.pitch_half_width, target_point.y()), agent.server_params.pitch_half_width))
 
         target_point.set_x(min(target_point.x(), wm.offside_line_x - 0.5))
-        from src.behaviors.starter.bhv_starter_setplay import BhvStarterSetPlay
-        selfplay = BhvStarterSetPlay()
-        dash_power = selfplay.get_set_play_dash_power(agent)
+        
+        dash_power = 50 # you can choose to be  selfplay.get_set_play_dash_power(agent)
+
         dist_thr = wm.ball.dist_from_self * 0.07
         if dist_thr < 1.0:
             dist_thr = 1.0
 
-        agent.add_action(PlayerAction(body_go_to_point=Body_GoToPoint(target_point=Tools.convert_vector2d_to_rpc_vector2d(target_point), distance_threshold=dist_thr, max_dash_power=50)))
+        agent.add_action(PlayerAction(body_go_to_point=Body_GoToPoint(target_point=Tools.convert_vector2d_to_rpc_vector2d(target_point), distance_threshold=dist_thr, max_dash_power=dash_power)))
         agent.add_action(PlayerAction(body_turn_to_ball=Body_TurnToBall(cycle=1)))
 
         if self_positions.dist(target_point) > max(ball_positions.dist(target_point) * 0.2, dist_thr) + 6.0 or wm.self.stamina < agent.server_params.stamina_max * 0.7:
